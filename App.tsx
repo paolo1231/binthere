@@ -1,15 +1,18 @@
 import React from 'react';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { ItemProvider } from './src/context/ItemContext';
 import HomeScreen from './src/screens/HomeScreen';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <HomeScreen />
-    </View>
+    <ItemProvider>
+      <View style={styles.container}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <HomeScreen />
+      </View>
+    </ItemProvider>
   );
 }
 

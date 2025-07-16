@@ -1,11 +1,21 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
+import { useItems } from '../context/ItemContext';
 
-const SearchBar = () => (
-    <View style={styles.container}>
-        <TextInput style={styles.input} placeholder="Search items..." />
-    </View>
-);
+const SearchBar = () => {
+    const { state, dispatch } = useItems();
+
+    return (
+        <View style={styles.container}>
+            <TextInput
+                style={styles.input}
+                placeholder="Search items..."
+                value={state.searchQuery}
+                onChangeText={(text) => dispatch({ type: 'SET_SEARCH_QUERY', payload: text })}
+            />
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
     container: { marginVertical: 10 },
