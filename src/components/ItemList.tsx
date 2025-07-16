@@ -1,21 +1,22 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { useItems } from '../context/ItemContext';
+import { useTheme } from '../theme/ThemeProvider';
 import { Item } from '../types';
+import ItemDetailModal from './ItemDetailModal';
+import SuccessToast from './SuccessToast';
 
 const ItemList = () => {
     const { filteredItems, deleteItem, updateItem } = useItems();
+    const { colors } = useTheme();
+    const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [toastVisible, setToastVisible] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
 
     const handleItemPress = (item: Item) => {
-        Alert.alert(
-            item.name,
-            `Location: ${item.location}\nAdded: ${item.createdAt.toLocaleDateString()}`,
-            [
-                { text: 'Mark as Used', onPress: () => markAsUsed(item) },
-                { text: 'Delete', onPress: () => confirmDelete(item.id), style: 'destructive' },
-                { text: 'Cancel', style: 'cancel' }
-            ]
-        );
+        setSelectedItem(item);
+        setDetailModalVisible(true);
     };
 
     const markAsUsed = (item: Item) => {
@@ -24,31 +25,64 @@ const ItemList = () => {
             usageHistory: [...(item.usageHistory || []), new Date()]
         };
         updateItem(updatedItem);
-        Alert.alert('Success', 'Item marked as used!');
+
+        // Show success toast
+        setToastMessage(`${item.name} marked as used`);
+        setToastVisible(true);
     };
 
-    const confirmDelete = (id: string) => {
-        Alert.alert(
-            'Delete Item',
-            'Are you sure you want to delete this item?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete', onPress: () => deleteItem(id), style: 'destructive' }
-            ]
-        );
+    const handleUpdateItem = (updatedItem: Item) => {
+        updateItem(updatedItem);
+
+        // Show success toast
+        setToastMessage(`${updatedItem.name} updated`);
+        setToastVisible(true);
+    };
+
+    const handleDelete = (id: string) => {
+        const itemName = selectedItem?.name || 'Item';
+        deleteItem(id);
+
+        // Show success toast
+        setToastMessage(`${itemName} deleted`);
+        setToastVisible(true);
+    };
+
+    const handleCloseModal = () => {
+        setDetailModalVisible(false);
+    };
+
+    const handleHideToast = () => {
+        setToastVisible(false);
     };
 
     const renderItem = ({ item }: { item: Item }) => (
-        <TouchableOpacity style={styles.itemContainer} onPress={() => handleItemPress(item)}>
+        <TouchableOpacity
+            style={[
+                styles.itemContainer,
+                {
+                    backgroundColor: colors.card,
+                    borderColor: colors.cardBorder,
+                    shadowColor: colors.text
+                }
+            ]}
+            onPress={() => handleItemPress(item)}
+        >
             <View style={styles.itemHeader}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDate}>{item.createdAt.toLocaleDateString()}</Text>
-            </View>
-            <Text style={styles.itemLocation}>📍 {item.location}</Text>
-            {item.usageHistory && item.usageHistory.length > 0 && (
-                <Text style={styles.usageCount}>
-                    Used {item.usageHistory.length} time{item.usageHistory.length !== 1 ? 's' : ''}
+                <Text style={[styles.itemName, { color: colors.text }]}>{item.name}</Text>
+                <Text style={[styles.itemDate, { color: colors.textSecondary }]}>
+                    {item.createdAt.toLocaleDateString()}
                 </Text>
+            </View>
+            <Text style={[styles.itemLocation, { color: colors.textSecondary }]}>
+                📍 {item.location}
+            </Text>
+            {item.usageHistory && item.usageHistory.length > 0 && (
+                <View style={[styles.usageTag, { backgroundColor: colors.accent + '20' }]}>
+                    <Text style={[styles.usageCount, { color: colors.accent }]}>
+                        Used {item.usageHistory.length} time{item.usageHistory.length !== 1 ? 's' : ''}
+                    </Text>
+                </View>
             )}
         </TouchableOpacity>
     );
@@ -56,20 +90,40 @@ const ItemList = () => {
     if (filteredItems.length === 0) {
         return (
             <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No items found</Text>
-                <Text style={styles.emptySubtext}>Add your first item above!</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No items found</Text>
+                <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Add your first item above!</Text>
             </View>
         );
     }
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Your Items ({filteredItems.length})</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+                Your Items ({filteredItems.length})
+            </Text>
             <FlatList
                 data={filteredItems}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+            />
+
+            {/* Item Detail Modal */}
+            <ItemDetailModal
+                visible={detailModalVisible}
+                onClose={handleCloseModal}
+                item={selectedItem}
+                onMarkAsUsed={markAsUsed}
+                onDelete={handleDelete}
+                onUpdate={handleUpdateItem}
+            />
+
+            {/* Success Toast */}
+            <SuccessToast
+                visible={toastVisible}
+                message={toastMessage}
+                onHide={handleHideToast}
             />
         </View>
     );
@@ -80,56 +134,68 @@ const styles = StyleSheet.create({
         marginVertical: 10,
         flex: 1,
     },
+    listContent: {
+        paddingBottom: 20
+    },
     title: {
         fontWeight: 'bold',
-        marginBottom: 8,
-        fontSize: 16,
+        marginBottom: 12,
+        fontSize: 18,
     },
     itemContainer: {
-        backgroundColor: '#f9f9f9',
-        padding: 12,
-        marginBottom: 8,
-        borderRadius: 8,
+        padding: 16,
+        marginBottom: 12,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
     },
     itemHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 8,
     },
     itemName: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '600',
         flex: 1,
     },
     itemDate: {
         fontSize: 12,
-        color: '#666',
     },
     itemLocation: {
-        fontSize: 14,
-        color: '#555',
-        marginBottom: 4,
+        fontSize: 15,
+        marginBottom: 8,
+    },
+    usageTag: {
+        alignSelf: 'flex-start',
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 12,
+        marginTop: 4
     },
     usageCount: {
         fontSize: 12,
-        color: '#888',
-        fontStyle: 'italic',
+        fontWeight: '500',
     },
     emptyContainer: {
         alignItems: 'center',
-        padding: 20,
+        justifyContent: 'center',
+        padding: 40,
+        flex: 1
     },
     emptyText: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 4,
+        fontSize: 18,
+        fontWeight: '500',
+        marginBottom: 8,
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#999',
+        textAlign: 'center',
+        paddingHorizontal: 20
     },
 });
 

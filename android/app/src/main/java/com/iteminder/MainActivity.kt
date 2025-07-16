@@ -1,4 +1,4 @@
-package com.iteminder
+package com.binthere
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

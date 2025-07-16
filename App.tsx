@@ -1,18 +1,45 @@
-import React from 'react';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import React, { useState } from 'react';
+import { StatusBar, StyleSheet } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ItemProvider } from './src/context/ItemContext';
+import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import HomeScreen from './src/screens/HomeScreen';
+import SplashScreen from './src/components/SplashScreen';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+const AppContent = () => {
+  const { isDark, colors } = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
 
   return (
     <ItemProvider>
-      <View style={styles.container}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <HomeScreen />
-      </View>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent={true}
+      />
+
+      {showSplash ? (
+        <SplashScreen onFinish={handleSplashFinish} />
+      ) : (
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+          <HomeScreen />
+        </SafeAreaView>
+      )}
     </ItemProvider>
+  );
+};
+
+function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
