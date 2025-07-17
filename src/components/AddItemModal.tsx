@@ -5,7 +5,6 @@ import {
     Animated,
     TouchableWithoutFeedback,
     Dimensions,
-    Keyboard,
     TouchableOpacity,
     Text,
     PanResponder,
@@ -109,59 +108,83 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose }) => {
             transparent={true}
             animationType="none"
             onRequestClose={onClose}
+            statusBarTranslucent={true}
         >
-            <TouchableWithoutFeedback onPress={handleBackdropPress}>
+            <View style={styles.modalContainer}>
+                <TouchableWithoutFeedback onPress={handleBackdropPress}>
+                    <Animated.View
+                        style={[
+                            styles.backdrop,
+                            {
+                                backgroundColor: 'black',
+                                opacity: backdropOpacity,
+                            },
+                        ]}
+                    />
+                </TouchableWithoutFeedback>
                 <Animated.View
                     style={[
-                        styles.backdrop,
+                        styles.container,
                         {
-                            backgroundColor: 'black',
-                            opacity: backdropOpacity,
+                            transform: [{ translateY: slideAnim }],
+                            backgroundColor: colors.background,
                         },
                     ]}
-                />
-            </TouchableWithoutFeedback>
-            <Animated.View
-                style={[
-                    styles.container,
-                    {
-                        transform: [{ translateY: slideAnim }],
-                        backgroundColor: colors.background,
-                    },
-                ]}
-                {...panResponder.panHandlers}
-            >
-                <View style={styles.handle} />
-                <View style={styles.header}>
-                    <Text style={[styles.headerText, { color: colors.text }]}>Add New Item</Text>
-                    <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                        <Text style={{ fontSize: 22, color: colors.textSecondary }}>✕</Text>
-                    </TouchableOpacity>
-                </View>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={{ flex: 1 }}
+                    {...panResponder.panHandlers}
                 >
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContent}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
+                    <View style={styles.handle} />
+                    <View style={styles.header}>
+                        <Text style={[styles.headerText, { color: colors.text }]}>Add New Item</Text>
+                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                            <Text style={{ fontSize: 22, color: colors.textSecondary }}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                        style={{ flex: 1 }}
                     >
-                        <ItemEntry onItemAdded={onClose} />
-                    </ScrollView>
-                </KeyboardAvoidingView>
-            </Animated.View>
+                        <ScrollView
+                            contentContainerStyle={styles.scrollContent}
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            <ItemEntry onItemAdded={onClose} />
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </Animated.View>
+
+                {/* Modal FAB - mimics the main FAB */}
+                <TouchableOpacity
+                    style={[styles.modalFab, { backgroundColor: colors.primary }]}
+                    onPress={onClose}
+                    activeOpacity={0.8}
+                >
+                    <Text style={styles.fabIcon}>✕</Text>
+                </TouchableOpacity>
+            </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
+    modalContainer: {
+        flex: 1,
+        position: 'relative',
+    },
     backdrop: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
+    },
+    fabCutout: {
+        position: 'absolute',
+        width: 80,
+        height: 80,
+        bottom: 0,
+        right: 0,
+        backgroundColor: 'transparent',
     },
     container: {
         position: 'absolute',
@@ -172,8 +195,8 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingHorizontal: 20,
-        paddingBottom: 30,
-        elevation: 20,
+        paddingBottom: 20,
+        elevation: 25,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -3 },
         shadowOpacity: 0.3,
@@ -203,6 +226,27 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 20,
+    },
+    modalFab: {
+        position: 'absolute',
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        right: 20,
+        bottom: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        zIndex: 1100,
+    },
+    fabIcon: {
+        fontSize: 30,
+        color: 'white',
+        fontWeight: 'bold',
     },
 });
 

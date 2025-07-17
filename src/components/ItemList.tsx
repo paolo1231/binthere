@@ -112,9 +112,14 @@ const ItemList = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={[styles.title, { color: colors.text }]}>
-                Your Items ({filteredItems.length})
-            </Text>
+            <View style={styles.titleContainer}>
+                <Text style={[styles.title, { color: colors.text }]}>
+                    Your Items
+                </Text>
+                <Text style={[styles.itemCount, { color: colors.textSecondary }]}>
+                    {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
+                </Text>
+            </View>
             <FlatList
                 data={filteredItems}
                 renderItem={renderItem}
@@ -145,16 +150,23 @@ const ItemList = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginVertical: 10,
         flex: 1,
     },
     listContent: {
         paddingBottom: 20
     },
+    titleContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
     title: {
         fontWeight: 'bold',
-        marginBottom: 12,
         fontSize: 18,
+    },
+    itemCount: {
+        fontSize: 14,
     },
     itemContainer: {
         padding: 16,

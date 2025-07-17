@@ -153,22 +153,34 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
         <View style={styles.container}>
             {/* Title is now in the modal header */}
 
-            {/* Photo preview */}
-            {imageUri && (
-                <View style={styles.imagePreviewContainer}>
-                    <Image
-                        source={{ uri: imageUri }}
-                        style={styles.imagePreview}
-                        resizeMode="cover"
-                    />
+            {/* Photo section - Always visible */}
+            <View style={styles.photoSection}>
+                {imageUri ? (
+                    <View style={styles.imagePreviewContainer}>
+                        <Image
+                            source={{ uri: imageUri }}
+                            style={styles.imagePreview}
+                            resizeMode="cover"
+                        />
+                        <TouchableOpacity
+                            style={[styles.removePhotoButton, { backgroundColor: colors.error }]}
+                            onPress={() => setImageUri(undefined)}
+                        >
+                            <Text style={styles.removePhotoButtonText}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : (
                     <TouchableOpacity
-                        style={[styles.removePhotoButton, { backgroundColor: colors.error }]}
-                        onPress={() => setImageUri(undefined)}
+                        style={[styles.photoPlaceholder, { borderColor: colors.cardBorder }]}
+                        onPress={handlePhotoEntry}
                     >
-                        <Text style={styles.removePhotoButtonText}>✕</Text>
+                        <Text style={styles.photoPlaceholderIcon}>📷</Text>
+                        <Text style={[styles.photoPlaceholderText, { color: colors.textSecondary }]}>
+                            Add a photo (recommended)
+                        </Text>
                     </TouchableOpacity>
-                </View>
-            )}
+                )}
+            </View>
 
             <TextInput
                 style={[styles.input, { borderColor: colors.cardBorder, color: colors.text }]}
@@ -214,14 +226,6 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: colors.secondary }]}
-                    onPress={handlePhotoEntry}
-                >
-                    <Text style={styles.iconButtonText}>📷</Text>
-                    <Text style={styles.iconButtonLabel}>Photo</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                     style={[styles.iconButton, { backgroundColor: colors.info }]}
                     onPress={handleBarcodeEntry}
                 >
@@ -261,6 +265,29 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    photoSection: {
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    photoPlaceholder: {
+        width: 200,
+        height: 160,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.03)',
+    },
+    photoPlaceholderIcon: {
+        fontSize: 40,
+        marginBottom: 10,
+    },
+    photoPlaceholderText: {
+        fontSize: 16,
+        textAlign: 'center',
+        paddingHorizontal: 20,
     },
     title: {
         fontWeight: 'bold',

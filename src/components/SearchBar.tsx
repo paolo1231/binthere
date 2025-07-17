@@ -13,7 +13,7 @@ const SearchBar = () => {
 
     return (
         <View style={[styles.container, { backgroundColor: colors.card, borderRadius: 12 }]}>
-            <View style={styles.searchInputContainer}>
+            <View style={[styles.searchInputContainer, { backgroundColor: colors.background }]}>
                 <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                     style={[styles.input, { color: colors.text }]}
@@ -24,7 +24,7 @@ const SearchBar = () => {
                 />
                 {state.searchQuery ? (
                     <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
-                        <Text style={styles.clearButtonText}>✕</Text>
+                        <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>✕</Text>
                     </TouchableOpacity>
                 ) : null}
             </View>
@@ -34,7 +34,7 @@ const SearchBar = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginVertical: 10,
+        marginBottom: 12,
         padding: 8,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -46,7 +46,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: 8,
-        backgroundColor: '#f5f5f5',
         paddingHorizontal: 10
     },
     searchIcon: {

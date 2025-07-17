@@ -50,91 +50,82 @@ const HomeScreen = () => {
     }, [isAddModalVisible]);
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <View style={styles.logoContainer}>
-                <Text style={[styles.logoText, { color: colors.primary }]}>Bin</Text>
-                <Text style={[styles.logoTextAccent, { color: colors.accent }]}>There</Text>
+        <>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                <View style={styles.headerContainer}>
+                    <View style={[styles.logoIcon, { backgroundColor: colors.primary }]}>
+                        <Text style={[styles.logoIconText, { color: 'white' }]}>BT</Text>
+                        <View style={[styles.logoAccent, { backgroundColor: colors.accent }]} />
+                    </View>
+
+                    <View style={[styles.tabContainer, { borderColor: colors.cardBorder, flex: 1, marginLeft: 12 }]}>
+                        <TouchableOpacity
+                            style={[
+                                styles.tab,
+                                { backgroundColor: colors.card },
+                                activeTab === 'items' && { backgroundColor: colors.primary }
+                            ]}
+                            onPress={() => setActiveTab('items')}
+                        >
+                            <Text
+                                style={[
+                                    styles.tabText,
+                                    { color: colors.textSecondary },
+                                    activeTab === 'items' && { color: colors.background }
+                                ]}
+                            >
+                                My Items
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.tab,
+                                { backgroundColor: colors.card },
+                                activeTab === 'history' && { backgroundColor: colors.primary }
+                            ]}
+                            onPress={() => setActiveTab('history')}
+                        >
+                            <Text
+                                style={[
+                                    styles.tabText,
+                                    { color: colors.textSecondary },
+                                    activeTab === 'history' && { color: colors.background }
+                                ]}
+                            >
+                                Usage History
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {activeTab === 'items' ? (
+                    <>
+                        <SearchBar />
+                        <CategoryFilter />
+                        <ItemList />
+                    </>
+                ) : (
+                    <UsageHistory />
+                )}
+
+                {/* Add Item Modal */}
+                <AddItemModal
+                    visible={isAddModalVisible}
+                    onClose={() => setAddModalVisible(false)}
+                />
             </View>
-            <Text style={[styles.tagline, { color: colors.textSecondary }]}>Find what you need, when you need it</Text>
 
-            <View style={[styles.tabContainer, { borderColor: colors.cardBorder }]}>
+            {/* Floating Action Button - Only shown when modal is closed */}
+            {!isAddModalVisible && (
                 <TouchableOpacity
-                    style={[
-                        styles.tab,
-                        { backgroundColor: colors.card },
-                        activeTab === 'items' && { backgroundColor: colors.primary }
-                    ]}
-                    onPress={() => setActiveTab('items')}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            { color: colors.textSecondary },
-                            activeTab === 'items' && { color: colors.background }
-                        ]}
-                    >
-                        My Items
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[
-                        styles.tab,
-                        { backgroundColor: colors.card },
-                        activeTab === 'history' && { backgroundColor: colors.primary }
-                    ]}
-                    onPress={() => setActiveTab('history')}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            { color: colors.textSecondary },
-                            activeTab === 'history' && { color: colors.background }
-                        ]}
-                    >
-                        Usage History
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            {activeTab === 'items' ? (
-                <>
-                    <SearchBar />
-                    <CategoryFilter />
-                    <ItemList />
-                </>
-            ) : (
-                <UsageHistory />
-            )}
-
-            {/* Floating Action Button */}
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: colors.primary }]}
-                onPress={() => setAddModalVisible(true)}
-                activeOpacity={0.8}
-            >
-                <Animated.View
-                    style={{
-                        transform: [
-                            { scale: scaleAnim },
-                            {
-                                rotate: rotateAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ['0deg', '135deg']
-                                })
-                            }
-                        ]
-                    }}
+                    style={[styles.fab, { backgroundColor: colors.primary }]}
+                    onPress={() => setAddModalVisible(true)}
+                    activeOpacity={0.8}
                 >
                     <Text style={styles.fabIcon}>+</Text>
-                </Animated.View>
-            </TouchableOpacity>
-
-            {/* Add Item Modal */}
-            <AddItemModal
-                visible={isAddModalVisible}
-                onClose={() => setAddModalVisible(false)}
-            />
-        </View>
+                </TouchableOpacity>
+            )}
+        </>
     );
 };
 
@@ -143,6 +134,36 @@ const styles = StyleSheet.create({
         padding: 16,
         flex: 1
     },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+        marginTop: 8
+    },
+    logoIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+    },
+    logoIconText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
+    logoAccent: {
+        position: 'absolute',
+        width: 12,
+        height: 3,
+        bottom: 8,
+        borderRadius: 1.5,
+    },
+    // Keep these for backward compatibility
     logoContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
@@ -166,14 +187,14 @@ const styles = StyleSheet.create({
     },
     tabContainer: {
         flexDirection: 'row',
-        marginBottom: 16,
         borderRadius: 8,
         overflow: 'hidden',
-        borderWidth: 1
+        borderWidth: 1,
+        height: 40 // Match the height of the logo icon
     },
     tab: {
         flex: 1,
-        paddingVertical: 12,
+        justifyContent: 'center',
         alignItems: 'center'
     },
     tabText: {
@@ -189,12 +210,12 @@ const styles = StyleSheet.create({
         bottom: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 8,
+        elevation: 30,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
-        zIndex: 999
+        zIndex: 1100 // Higher than the modal's zIndex
     },
     fabIcon: {
         fontSize: 30,

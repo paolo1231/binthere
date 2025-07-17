@@ -104,7 +104,7 @@ const CategoryFilter: React.FC = () => {
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: 16,
+        marginBottom: 12,
     },
     headerContainer: {
         flexDirection: 'row',

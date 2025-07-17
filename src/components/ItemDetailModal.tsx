@@ -206,9 +206,44 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                         </TouchableOpacity>
                                     </View>
                                 ) : (
-                                    <View style={[styles.photoPlaceholder, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                                        <Text style={{ color: colors.textSecondary }}>No Photo</Text>
-                                    </View>
+                                    <TouchableOpacity
+                                        style={[styles.photoPlaceholder, {
+                                            backgroundColor: 'rgba(0,0,0,0.03)',
+                                            borderColor: colors.cardBorder,
+                                            borderWidth: 2,
+                                            borderStyle: 'dashed'
+                                        }]}
+                                        onPress={async () => {
+                                            try {
+                                                // Request camera permission first
+                                                const hasPermission = await requestCameraPermission();
+                                                if (!hasPermission) {
+                                                    console.log('Camera permission denied');
+                                                    return;
+                                                }
+
+                                                console.log('Launching camera...');
+                                                launchCamera({
+                                                    mediaType: 'photo',
+                                                    quality: 0.8,
+                                                    saveToPhotos: true,
+                                                    includeBase64: false,
+                                                }, (response) => {
+                                                    if (!response.didCancel && !response.errorCode && response.assets && response.assets[0]?.uri) {
+                                                        setEditedImageUri(response.assets[0].uri);
+                                                    }
+                                                });
+                                            } catch (error) {
+                                                console.log('Camera error:', error);
+                                                Alert.alert('Error', 'Failed to open camera');
+                                            }
+                                        }}
+                                    >
+                                        <Text style={{ fontSize: 40, marginBottom: 10 }}>📷</Text>
+                                        <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>
+                                            Add a photo (recommended)
+                                        </Text>
+                                    </TouchableOpacity>
                                 )}
 
                                 <View style={styles.photoButtonsContainer}>
@@ -316,9 +351,20 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                         resizeMode="cover"
                                     />
                                 ) : (
-                                    <View style={[styles.photoPlaceholder, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-                                        <Text style={{ color: colors.textSecondary }}>No Photo</Text>
-                                    </View>
+                                    <TouchableOpacity
+                                        style={[styles.photoPlaceholder, {
+                                            backgroundColor: 'rgba(0,0,0,0.03)',
+                                            borderColor: colors.cardBorder,
+                                            borderWidth: 2,
+                                            borderStyle: 'dashed'
+                                        }]}
+                                        onPress={() => setIsEditing(true)}
+                                    >
+                                        <Text style={{ fontSize: 40, marginBottom: 10 }}>📷</Text>
+                                        <Text style={{ color: colors.textSecondary, textAlign: 'center' }}>
+                                            Add a photo (recommended)
+                                        </Text>
+                                    </TouchableOpacity>
                                 )}
                             </>
                         )}
