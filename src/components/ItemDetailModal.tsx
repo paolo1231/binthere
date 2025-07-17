@@ -12,12 +12,13 @@ import {
     Image,
     TextInput,
     Alert,
-    Platform
+    PanResponder
 } from 'react-native';
-import { launchCamera, launchImageLibrary, CameraOptions, ImageLibraryOptions } from 'react-native-image-picker';
-import { requestCameraPermission, requestStoragePermission } from '../utils/permissions';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import { requestCameraPermission } from '../utils/permissions';
 import { useTheme } from '../theme/ThemeProvider';
 import { Item } from '../types';
+import CategorySelector from './CategorySelector';
 
 interface ItemDetailModalProps {
     visible: boolean;
@@ -45,13 +46,48 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
     // State for editing
     const [isEditing, setIsEditing] = useState(false);
     const [editedLocation, setEditedLocation] = useState('');
+    const [editedCategory, setEditedCategory] = useState('');
     const [editedImageUri, setEditedImageUri] = useState<string | undefined>(undefined);
+
+    // Create pan responder for swipe-to-close gesture
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                // Only respond to vertical gestures
+                return Math.abs(gestureState.dy) > Math.abs(gestureState.dx * 3);
+            },
+            onPanResponderMove: (_, gestureState) => {
+                if (gestureState.dy > 0) {
+                    // Only allow downward swipes
+                    slideAnim.setValue(gestureState.dy);
+                }
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+                    // If swiped down far enough or with enough velocity, close the modal
+                    Animated.timing(slideAnim, {
+                        toValue: height,
+                        duration: 300,
+                        useNativeDriver: true,
+                    }).start(() => onClose());
+                } else {
+                    // Otherwise, snap back to open position
+                    Animated.spring(slideAnim, {
+                        toValue: 0,
+                        useNativeDriver: true,
+                        bounciness: 0,
+                    }).start();
+                }
+            },
+        })
+    ).current;
 
     // Reset editing state when modal opens
     useEffect(() => {
         if (visible && item) {
             setIsEditing(false);
             setEditedLocation(item.location);
+            setEditedCategory(item.category || '');
             setEditedImageUri(item.imageUri);
         }
     }, [visible, item]);
@@ -144,6 +180,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         backgroundColor: colors.background,
                     },
                 ]}
+                {...panResponder.panHandlers}
             >
                 <View style={styles.handle} />
 
@@ -178,39 +215,44 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     <TouchableOpacity
                                         style={[styles.photoButton, { backgroundColor: colors.primary }]}
                                         onPress={async () => {
-                                            // Request camera permission first
-                                            const hasPermission = await requestCameraPermission();
-                                            if (!hasPermission) return;
-
                                             try {
-                                                const options: CameraOptions = {
+                                                // Request camera permission first
+                                                const hasPermission = await requestCameraPermission();
+                                                if (!hasPermission) {
+                                                    console.log('Camera permission denied');
+                                                    return;
+                                                }
+
+                                                console.log('Launching camera...');
+                                                // Use the same options as in ItemEntry
+                                                launchCamera({
                                                     mediaType: 'photo',
                                                     quality: 0.8,
                                                     saveToPhotos: true,
                                                     includeBase64: false,
-                                                };
+                                                }, (response) => {
+                                                    console.log('Camera response:', response);
 
-                                                const result = await launchCamera(options);
-                                                console.log('Camera result:', result);
+                                                    if (response.didCancel) {
+                                                        console.log('User cancelled camera');
+                                                        return;
+                                                    }
 
-                                                if (result.didCancel) {
-                                                    console.log('User cancelled camera');
-                                                    return;
-                                                }
+                                                    if (response.errorCode) {
+                                                        console.log('Camera error:', response.errorMessage);
+                                                        Alert.alert('Error', response.errorMessage || 'Unknown error');
+                                                        return;
+                                                    }
 
-                                                if (result.errorCode) {
-                                                    console.log('Camera error:', result.errorMessage);
-                                                    Alert.alert('Error', result.errorMessage || 'Unknown error');
-                                                    return;
-                                                }
-
-                                                if (result.assets && result.assets[0]?.uri) {
-                                                    console.log('Setting image URI:', result.assets[0].uri);
-                                                    setEditedImageUri(result.assets[0].uri);
-                                                } else {
-                                                    console.log('No image URI found in result');
-                                                    Alert.alert('Error', 'Failed to get image from camera');
-                                                }
+                                                    if (response.assets && response.assets[0]?.uri) {
+                                                        const newUri = response.assets[0].uri;
+                                                        console.log('Setting image URI:', newUri);
+                                                        setEditedImageUri(newUri);
+                                                    } else {
+                                                        console.log('No image URI found in response');
+                                                        Alert.alert('Error', 'Failed to get image from camera');
+                                                    }
+                                                });
                                             } catch (error) {
                                                 console.log('Camera error:', error);
                                                 Alert.alert('Error', 'Failed to open camera');
@@ -222,40 +264,39 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                                     <TouchableOpacity
                                         style={[styles.photoButton, { backgroundColor: colors.secondary }]}
-                                        onPress={async () => {
-                                            // Request storage permission first
-                                            const hasPermission = await requestStoragePermission();
-                                            if (!hasPermission) return;
-
+                                        onPress={() => {
                                             try {
-                                                const options: ImageLibraryOptions = {
+                                                console.log('Launching image library...');
+                                                // Use the same options as in ItemEntry
+                                                launchImageLibrary({
                                                     mediaType: 'photo',
                                                     quality: 0.8,
                                                     selectionLimit: 1,
                                                     includeBase64: false,
-                                                };
+                                                    presentationStyle: 'fullScreen',
+                                                }, (response) => {
+                                                    console.log('Gallery response:', response);
 
-                                                const result = await launchImageLibrary(options);
-                                                console.log('Gallery result:', result);
+                                                    if (response.didCancel) {
+                                                        console.log('User cancelled gallery');
+                                                        return;
+                                                    }
 
-                                                if (result.didCancel) {
-                                                    console.log('User cancelled gallery');
-                                                    return;
-                                                }
+                                                    if (response.errorCode) {
+                                                        console.log('Gallery error:', response.errorMessage);
+                                                        Alert.alert('Error', response.errorMessage || 'Unknown error');
+                                                        return;
+                                                    }
 
-                                                if (result.errorCode) {
-                                                    console.log('Gallery error:', result.errorMessage);
-                                                    Alert.alert('Error', result.errorMessage || 'Unknown error');
-                                                    return;
-                                                }
-
-                                                if (result.assets && result.assets[0]?.uri) {
-                                                    console.log('Setting image URI:', result.assets[0].uri);
-                                                    setEditedImageUri(result.assets[0].uri);
-                                                } else {
-                                                    console.log('No image URI found in result');
-                                                    Alert.alert('Error', 'Failed to get image from gallery');
-                                                }
+                                                    if (response.assets && response.assets[0]?.uri) {
+                                                        const newUri = response.assets[0].uri;
+                                                        console.log('Setting image URI from gallery:', newUri);
+                                                        setEditedImageUri(newUri);
+                                                    } else {
+                                                        console.log('No image URI found in response');
+                                                        Alert.alert('Error', 'Failed to get image from gallery');
+                                                    }
+                                                });
                                             } catch (error) {
                                                 console.log('Gallery error:', error);
                                                 Alert.alert('Error', 'Failed to open photo library');
@@ -304,6 +345,25 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                         </View>
 
                         <View style={styles.infoRow}>
+                            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Category:</Text>
+                            {!isEditing && (
+                                <Text style={[styles.infoValue, { color: colors.text }]}>
+                                    {item.category || 'Uncategorized'}
+                                </Text>
+                            )}
+                        </View>
+
+                        {isEditing && (
+                            <View style={styles.categoryInputContainer}>
+                                <Text style={[styles.categoryInputLabel, { color: colors.textSecondary }]}>Select Category:</Text>
+                                <CategorySelector
+                                    selectedCategory={editedCategory}
+                                    onSelectCategory={setEditedCategory}
+                                />
+                            </View>
+                        )}
+
+                        <View style={styles.infoRow}>
                             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Added:</Text>
                             <Text style={[styles.infoValue, { color: colors.text }]}>{item.createdAt.toLocaleDateString()}</Text>
                         </View>
@@ -331,6 +391,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                             onUpdate({
                                                 ...item,
                                                 location: editedLocation,
+                                                category: editedCategory,
                                                 imageUri: editedImageUri
                                             });
                                         }
@@ -345,6 +406,7 @@ const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                                     onPress={() => {
                                         // Reset to original values
                                         setEditedLocation(item.location);
+                                        setEditedCategory(item.category || '');
                                         setEditedImageUri(item.imageUri);
                                         setIsEditing(false);
                                     }}
@@ -399,6 +461,15 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
+    },
+    categoryInputContainer: {
+        marginVertical: 10,
+        paddingHorizontal: 5,
+    },
+    categoryInputLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 8,
     },
     container: {
         position: 'absolute',

@@ -6,6 +6,7 @@ type ItemState = {
     items: Item[];
     searchQuery: string;
     selectedLocation: string;
+    selectedCategory: string;
 };
 
 type ItemAction =
@@ -14,12 +15,14 @@ type ItemAction =
     | { type: 'UPDATE_ITEM'; payload: Item }
     | { type: 'DELETE_ITEM'; payload: string }
     | { type: 'SET_SEARCH_QUERY'; payload: string }
-    | { type: 'SET_SELECTED_LOCATION'; payload: string };
+    | { type: 'SET_SELECTED_LOCATION'; payload: string }
+    | { type: 'SET_SELECTED_CATEGORY'; payload: string };
 
 const initialState: ItemState = {
     items: [],
     searchQuery: '',
     selectedLocation: '',
+    selectedCategory: '',
 };
 
 const ItemContext = createContext<{
@@ -53,6 +56,8 @@ function itemReducer(state: ItemState, action: ItemAction): ItemState {
             return { ...state, searchQuery: action.payload };
         case 'SET_SELECTED_LOCATION':
             return { ...state, selectedLocation: action.payload };
+        case 'SET_SELECTED_CATEGORY':
+            return { ...state, selectedCategory: action.payload };
         default:
             return state;
     }
@@ -118,7 +123,8 @@ export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const matchesSearch = item.name.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
             item.location.toLowerCase().includes(state.searchQuery.toLowerCase());
         const matchesLocation = !state.selectedLocation || item.location === state.selectedLocation;
-        return matchesSearch && matchesLocation;
+        const matchesCategory = !state.selectedCategory || item.category === state.selectedCategory;
+        return matchesSearch && matchesLocation && matchesCategory;
     });
 
     return (

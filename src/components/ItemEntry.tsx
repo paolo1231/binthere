@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Image, Platform } from 'react-native';
-import { launchCamera, launchImageLibrary, CameraOptions, ImageLibraryOptions } from 'react-native-image-picker';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Image } from 'react-native';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useItems } from '../context/ItemContext';
 import { useTheme } from '../theme/ThemeProvider';
-import { requestCameraPermission, requestStoragePermission } from '../utils/permissions';
+import { requestCameraPermission } from '../utils/permissions';
+import CategorySelector from './CategorySelector';
 
 interface ItemEntryProps {
     onItemAdded?: () => void;
@@ -14,6 +15,7 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
     const { colors } = useTheme();
     const [itemName, setItemName] = useState('');
     const [itemLocation, setItemLocation] = useState('');
+    const [itemCategory, setItemCategory] = useState('');
     const [imageUri, setImageUri] = useState<string | undefined>(undefined);
 
     const handleAddItem = () => {
@@ -25,6 +27,7 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
         addItem({
             name: itemName.trim(),
             location: itemLocation.trim(),
+            category: itemCategory,
             imageUri: imageUri,
         });
 
@@ -41,39 +44,42 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
     };
 
     const takePicture = async () => {
-        // Request camera permission first
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) return;
-
         try {
-            const options: CameraOptions = {
+            // Request camera permission first
+            const hasPermission = await requestCameraPermission();
+            if (!hasPermission) {
+                console.log('Camera permission denied');
+                return;
+            }
+
+            console.log('Launching camera...');
+            launchCamera({
                 mediaType: 'photo',
                 quality: 0.8,
                 saveToPhotos: true,
                 includeBase64: false,
-            };
+            }, (response) => {
+                console.log('Camera response:', response);
 
-            const result = await launchCamera(options);
-            console.log('Camera result:', result);
+                if (response.didCancel) {
+                    console.log('User cancelled camera');
+                    return;
+                }
 
-            if (result.didCancel) {
-                console.log('User cancelled camera');
-                return;
-            }
+                if (response.errorCode) {
+                    console.log('Camera error:', response.errorMessage);
+                    Alert.alert('Error', response.errorMessage || 'Unknown error');
+                    return;
+                }
 
-            if (result.errorCode) {
-                console.log('Camera error:', result.errorMessage);
-                Alert.alert('Error', result.errorMessage || 'Unknown error');
-                return;
-            }
-
-            if (result.assets && result.assets[0]?.uri) {
-                console.log('Setting image URI:', result.assets[0].uri);
-                setImageUri(result.assets[0].uri);
-            } else {
-                console.log('No image URI found in result');
-                Alert.alert('Error', 'Failed to get image from camera');
-            }
+                if (response.assets && response.assets[0]?.uri) {
+                    console.log('Setting image URI:', response.assets[0].uri);
+                    setImageUri(response.assets[0].uri);
+                } else {
+                    console.log('No image URI found in response');
+                    Alert.alert('Error', 'Failed to get image from camera');
+                }
+            });
         } catch (error) {
             console.log('Camera error:', error);
             Alert.alert('Error', 'Failed to open camera');
@@ -81,39 +87,37 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
     };
 
     const selectFromGallery = async () => {
-        // Request storage permission first
-        const hasPermission = await requestStoragePermission();
-        if (!hasPermission) return;
-
         try {
-            const options: ImageLibraryOptions = {
+            // For Android 13+ (API level 33+), we don't need to request permissions for image picker
+            console.log('Launching image library...');
+            launchImageLibrary({
                 mediaType: 'photo',
                 quality: 0.8,
                 selectionLimit: 1,
                 includeBase64: false,
-            };
+                presentationStyle: 'fullScreen',
+            }, (response) => {
+                console.log('Gallery response:', response);
 
-            const result = await launchImageLibrary(options);
-            console.log('Gallery result:', result);
+                if (response.didCancel) {
+                    console.log('User cancelled gallery');
+                    return;
+                }
 
-            if (result.didCancel) {
-                console.log('User cancelled gallery');
-                return;
-            }
+                if (response.errorCode) {
+                    console.log('Gallery error:', response.errorMessage);
+                    Alert.alert('Error', response.errorMessage || 'Unknown error');
+                    return;
+                }
 
-            if (result.errorCode) {
-                console.log('Gallery error:', result.errorMessage);
-                Alert.alert('Error', result.errorMessage || 'Unknown error');
-                return;
-            }
-
-            if (result.assets && result.assets[0]?.uri) {
-                console.log('Setting image URI:', result.assets[0].uri);
-                setImageUri(result.assets[0].uri);
-            } else {
-                console.log('No image URI found in result');
-                Alert.alert('Error', 'Failed to get image from gallery');
-            }
+                if (response.assets && response.assets[0]?.uri) {
+                    console.log('Setting image URI:', response.assets[0].uri);
+                    setImageUri(response.assets[0].uri);
+                } else {
+                    console.log('No image URI found in response');
+                    Alert.alert('Error', 'Failed to get image from gallery');
+                }
+            });
         } catch (error) {
             console.log('Gallery error:', error);
             Alert.alert('Error', 'Failed to open photo library');
@@ -180,6 +184,11 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
                 placeholderTextColor={colors.textLight}
                 value={itemLocation}
                 onChangeText={setItemLocation}
+            />
+
+            <CategorySelector
+                selectedCategory={itemCategory}
+                onSelectCategory={setItemCategory}
             />
 
             <TouchableOpacity

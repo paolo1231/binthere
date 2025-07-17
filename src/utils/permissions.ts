@@ -6,7 +6,7 @@ export const requestCameraPermission = async (): Promise<boolean> => {
     }
 
     try {
-        // Request both camera and storage permissions together
+        // Request camera permission - this is the only essential permission for camera functionality
         const cameraGranted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.CAMERA,
             {
@@ -18,28 +18,14 @@ export const requestCameraPermission = async (): Promise<boolean> => {
             }
         );
 
-        const storageGranted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-            {
-                title: "Storage Permission",
-                message: "Bin There needs access to your storage to save photos.",
-                buttonNeutral: "Ask Me Later",
-                buttonNegative: "Cancel",
-                buttonPositive: "OK"
-            }
-        );
-
-        if (
-            cameraGranted === PermissionsAndroid.RESULTS.GRANTED &&
-            storageGranted === PermissionsAndroid.RESULTS.GRANTED
-        ) {
-            console.log("Camera and storage permissions granted");
+        if (cameraGranted === PermissionsAndroid.RESULTS.GRANTED) {
+            console.log("Camera permission granted");
             return true;
         } else {
-            console.log("Camera or storage permission denied");
+            console.log("Camera permission denied");
             Alert.alert(
                 "Permission Required",
-                "Camera and storage permissions are required to take photos. Please enable them in your device settings."
+                "Camera permission is required to take photos. Please enable it in your device settings."
             );
             return false;
         }
@@ -55,7 +41,8 @@ export const requestStoragePermission = async (): Promise<boolean> => {
     }
 
     try {
-        // Request both read and write storage permissions
+        // For Android, we'll just request READ_EXTERNAL_STORAGE
+        // This is the most compatible approach across Android versions
         const readGranted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
             {
@@ -67,28 +54,14 @@ export const requestStoragePermission = async (): Promise<boolean> => {
             }
         );
 
-        const writeGranted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-            {
-                title: "Storage Permission",
-                message: "Bin There needs access to your storage to save photos.",
-                buttonNeutral: "Ask Me Later",
-                buttonNegative: "Cancel",
-                buttonPositive: "OK"
-            }
-        );
-
-        if (
-            readGranted === PermissionsAndroid.RESULTS.GRANTED &&
-            writeGranted === PermissionsAndroid.RESULTS.GRANTED
-        ) {
-            console.log("Storage permissions granted");
+        if (readGranted === PermissionsAndroid.RESULTS.GRANTED) {
+            console.log("Storage permission granted");
             return true;
         } else {
             console.log("Storage permission denied");
             Alert.alert(
                 "Permission Required",
-                "Storage permissions are required to select photos. Please enable them in your device settings."
+                "Storage permission is required to select photos. Please enable it in your device settings."
             );
             return false;
         }

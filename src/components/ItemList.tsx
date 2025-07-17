@@ -34,6 +34,9 @@ const ItemList = () => {
     const handleUpdateItem = (updatedItem: Item) => {
         updateItem(updatedItem);
 
+        // Update the selected item to reflect changes immediately
+        setSelectedItem(updatedItem);
+
         // Show success toast
         setToastMessage(`${updatedItem.name} updated`);
         setToastVisible(true);
@@ -77,13 +80,24 @@ const ItemList = () => {
             <Text style={[styles.itemLocation, { color: colors.textSecondary }]}>
                 📍 {item.location}
             </Text>
-            {item.usageHistory && item.usageHistory.length > 0 && (
-                <View style={[styles.usageTag, { backgroundColor: colors.accent + '20' }]}>
-                    <Text style={[styles.usageCount, { color: colors.accent }]}>
-                        Used {item.usageHistory.length} time{item.usageHistory.length !== 1 ? 's' : ''}
-                    </Text>
-                </View>
-            )}
+
+            <View style={styles.tagsContainer}>
+                {item.category && (
+                    <View style={[styles.categoryTag, { backgroundColor: colors.primary + '20' }]}>
+                        <Text style={[styles.categoryText, { color: colors.primary }]}>
+                            {item.category}
+                        </Text>
+                    </View>
+                )}
+
+                {item.usageHistory && item.usageHistory.length > 0 && (
+                    <View style={[styles.usageTag, { backgroundColor: colors.accent + '20' }]}>
+                        <Text style={[styles.usageCount, { color: colors.accent }]}>
+                            Used {item.usageHistory.length} time{item.usageHistory.length !== 1 ? 's' : ''}
+                        </Text>
+                    </View>
+                )}
+            </View>
         </TouchableOpacity>
     );
 
@@ -170,12 +184,26 @@ const styles = StyleSheet.create({
         fontSize: 15,
         marginBottom: 8,
     },
-    usageTag: {
-        alignSelf: 'flex-start',
+    tagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginTop: 4,
+    },
+    categoryTag: {
         paddingVertical: 4,
         paddingHorizontal: 8,
         borderRadius: 12,
-        marginTop: 4
+        marginRight: 8,
+        marginBottom: 4,
+    },
+    categoryText: {
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    usageTag: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: 12,
     },
     usageCount: {
         fontSize: 12,

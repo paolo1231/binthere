@@ -32,7 +32,10 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose }) => {
     // Create pan responder for swipe-to-close gesture
     const panResponder = useRef(
         PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                // Only respond to vertical gestures
+                return Math.abs(gestureState.dy) > Math.abs(gestureState.dx * 3);
+            },
             onPanResponderMove: (_, gestureState) => {
                 if (gestureState.dy > 0) {
                     // Only allow downward swipes
@@ -42,7 +45,11 @@ const AddItemModal: React.FC<AddItemModalProps> = ({ visible, onClose }) => {
             onPanResponderRelease: (_, gestureState) => {
                 if (gestureState.dy > 100 || gestureState.vy > 0.5) {
                     // If swiped down far enough or with enough velocity, close the modal
-                    onClose();
+                    Animated.timing(slideAnim, {
+                        toValue: height,
+                        duration: 300,
+                        useNativeDriver: true,
+                    }).start(() => onClose());
                 } else {
                     // Otherwise, snap back to open position
                     Animated.spring(slideAnim, {

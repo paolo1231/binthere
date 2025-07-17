@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import SearchBar from '../components/SearchBar';
+import CategoryFilter from '../components/CategoryFilter';
 import ItemList from '../components/ItemList';
 import UsageHistory from '../components/UsageHistory';
 import AddItemModal from '../components/AddItemModal';
@@ -98,6 +99,7 @@ const HomeScreen = () => {
             {activeTab === 'items' ? (
                 <>
                     <SearchBar />
+                    <CategoryFilter />
                     <ItemList />
                 </>
             ) : (
