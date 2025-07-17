@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { useItems } from '../context/ItemContext';
 import { useTheme } from '../theme/ThemeProvider';
+import VisualSearch from './VisualSearch';
+import { isFeatureEnabled } from '../config/featureFlags';
 
 const SearchBar = () => {
     const { state, dispatch } = useItems();
     const { colors } = useTheme();
+    const [visualSearchVisible, setVisualSearchVisible] = useState(false);
 
     const handleClearSearch = () => {
         dispatch({ type: 'SET_SEARCH_QUERY', payload: '' });
+    };
+
+    const handleVisualSearch = () => {
+        setVisualSearchVisible(true);
     };
 
     return (
@@ -26,8 +33,20 @@ const SearchBar = () => {
                     <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
                         <Text style={[styles.clearButtonText, { color: colors.textSecondary }]}>✕</Text>
                     </TouchableOpacity>
-                ) : null}
+                ) : (
+                    isFeatureEnabled('visualSearch') && (
+                        <TouchableOpacity onPress={handleVisualSearch} style={styles.visualSearchButton}>
+                            <Text style={styles.visualSearchIcon}>📷</Text>
+                        </TouchableOpacity>
+                    )
+                )}
             </View>
+
+            {/* Visual Search Modal */}
+            <VisualSearch
+                visible={visualSearchVisible}
+                onClose={() => setVisualSearchVisible(false)}
+            />
         </View>
     );
 };
@@ -65,6 +84,12 @@ const styles = StyleSheet.create({
     clearButtonText: {
         fontSize: 16,
         color: '#888'
+    },
+    visualSearchButton: {
+        padding: 6
+    },
+    visualSearchIcon: {
+        fontSize: 18
     }
 });
 

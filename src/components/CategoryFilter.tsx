@@ -6,7 +6,7 @@ import { DEFAULT_CATEGORIES } from '../types';
 import CategoryManager from './CategoryManager';
 
 const CategoryFilter: React.FC = () => {
-    const { state, dispatch, filteredItems } = useItems();
+    const { state, dispatch } = useItems();
     const { colors } = useTheme();
     const [categories, setCategories] = useState<string[]>([]);
     const [isCategoryManagerVisible, setIsCategoryManagerVisible] = useState(false);

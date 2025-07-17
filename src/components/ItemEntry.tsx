@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Image, ActivityIndicator } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { useItems } from '../context/ItemContext';
 import { useTheme } from '../theme/ThemeProvider';
 import { requestCameraPermission } from '../utils/permissions';
+import { analyzeImage } from '../utils/visionApi';
+import { isFeatureEnabled } from '../config/featureFlags';
 import CategorySelector from './CategorySelector';
 
 interface ItemEntryProps {
@@ -17,6 +19,8 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
     const [itemLocation, setItemLocation] = useState('');
     const [itemCategory, setItemCategory] = useState('');
     const [imageUri, setImageUri] = useState<string | undefined>(undefined);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [suggestedLabels, setSuggestedLabels] = useState<string[]>([]);
 
     const handleAddItem = () => {
         if (!itemName.trim() || !itemLocation.trim()) {
@@ -73,8 +77,12 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
                 }
 
                 if (response.assets && response.assets[0]?.uri) {
-                    console.log('Setting image URI:', response.assets[0].uri);
-                    setImageUri(response.assets[0].uri);
+                    const uri = response.assets[0].uri;
+                    console.log('Setting image URI:', uri);
+                    setImageUri(uri);
+
+                    // Analyze the image with AI
+                    analyzeImageAndSuggestCategory(uri);
                 } else {
                     console.log('No image URI found in response');
                     Alert.alert('Error', 'Failed to get image from camera');
@@ -83,6 +91,44 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
         } catch (error) {
             console.log('Camera error:', error);
             Alert.alert('Error', 'Failed to open camera');
+        }
+    };
+
+    const analyzeImageAndSuggestCategory = async (uri: string) => {
+        // Skip analysis if the feature is disabled
+        if (!isFeatureEnabled('visualSearch')) {
+            return;
+        }
+
+        setIsAnalyzing(true);
+        try {
+            const result = await analyzeImage(uri);
+            console.log('Image analysis result:', result);
+
+            // Set suggested labels from the analysis
+            setSuggestedLabels(result.labels);
+
+            // If a category was suggested and no category is currently selected,
+            // automatically select the suggested category
+            if (result.category && !itemCategory) {
+                setItemCategory(result.category);
+
+                // Show a toast or alert to inform the user
+                Alert.alert(
+                    'Category Detected',
+                    `This looks like a "${result.category}" item. Category has been automatically selected.`,
+                    [{ text: 'OK' }]
+                );
+
+                // If the item name is empty, suggest using the first label as the name
+                if (!itemName) {
+                    setItemName(result.labels[0] || '');
+                }
+            }
+        } catch (error) {
+            console.error('Error analyzing image:', error);
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
@@ -111,8 +157,12 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
                 }
 
                 if (response.assets && response.assets[0]?.uri) {
-                    console.log('Setting image URI:', response.assets[0].uri);
-                    setImageUri(response.assets[0].uri);
+                    const uri = response.assets[0].uri;
+                    console.log('Setting image URI:', uri);
+                    setImageUri(uri);
+
+                    // Analyze the image with AI
+                    analyzeImageAndSuggestCategory(uri);
                 } else {
                     console.log('No image URI found in response');
                     Alert.alert('Error', 'Failed to get image from gallery');
@@ -168,6 +218,34 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
                         >
                             <Text style={styles.removePhotoButtonText}>✕</Text>
                         </TouchableOpacity>
+
+                        {/* Show loading indicator when analyzing - only if feature is enabled */}
+                        {isFeatureEnabled('visualSearch') && isAnalyzing && (
+                            <View style={[styles.analyzeOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                                <ActivityIndicator size="large" color="white" />
+                                <Text style={styles.analyzeText}>Analyzing image...</Text>
+                            </View>
+                        )}
+
+                        {/* Show suggested labels if available - only if feature is enabled */}
+                        {isFeatureEnabled('visualSearch') && !isAnalyzing && suggestedLabels.length > 0 && (
+                            <View style={[styles.labelsContainer, { backgroundColor: colors.primary + '20' }]}>
+                                <Text style={[styles.labelsTitle, { color: colors.primary }]}>
+                                    AI detected:
+                                </Text>
+                                <View style={styles.labelChips}>
+                                    {suggestedLabels.slice(0, 3).map((label, index) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            style={[styles.labelChip, { backgroundColor: colors.primary }]}
+                                            onPress={() => !itemName && setItemName(label)}
+                                        >
+                                            <Text style={styles.labelChipText}>{label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
                     </View>
                 ) : (
                     <TouchableOpacity
@@ -217,21 +295,25 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
             </View>
 
             <View style={styles.buttonRow}>
-                <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: colors.accent }]}
-                    onPress={handleVoiceEntry}
-                >
-                    <Text style={styles.iconButtonText}>🎤</Text>
-                    <Text style={styles.iconButtonLabel}>Voice</Text>
-                </TouchableOpacity>
+                {isFeatureEnabled('voiceEntry') && (
+                    <TouchableOpacity
+                        style={[styles.iconButton, { backgroundColor: colors.accent }]}
+                        onPress={handleVoiceEntry}
+                    >
+                        <Text style={styles.iconButtonText}>🎤</Text>
+                        <Text style={styles.iconButtonLabel}>Voice</Text>
+                    </TouchableOpacity>
+                )}
 
-                <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: colors.info }]}
-                    onPress={handleBarcodeEntry}
-                >
-                    <Text style={styles.iconButtonText}>📊</Text>
-                    <Text style={styles.iconButtonLabel}>Barcode</Text>
-                </TouchableOpacity>
+                {isFeatureEnabled('barcodeScan') && (
+                    <TouchableOpacity
+                        style={[styles.iconButton, { backgroundColor: colors.info }]}
+                        onPress={handleBarcodeEntry}
+                    >
+                        <Text style={styles.iconButtonText}>📊</Text>
+                        <Text style={styles.iconButtonLabel}>Barcode</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </View>
     );
@@ -288,6 +370,51 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
         paddingHorizontal: 20,
+    },
+    analyzeOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 12,
+    },
+    analyzeText: {
+        color: 'white',
+        marginTop: 10,
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    labelsContainer: {
+        position: 'absolute',
+        bottom: -60,
+        left: 0,
+        right: 0,
+        padding: 8,
+        borderRadius: 8,
+    },
+    labelsTitle: {
+        fontWeight: '600',
+        fontSize: 14,
+        marginBottom: 4,
+    },
+    labelChips: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    labelChip: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginRight: 6,
+        marginBottom: 4,
+    },
+    labelChipText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '500',
     },
     title: {
         fontWeight: 'bold',

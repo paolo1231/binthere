@@ -3,14 +3,14 @@ import {
     View,
     Text,
     StyleSheet,
-    Modal,
-    TouchableOpacity,
     FlatList,
+    TouchableOpacity,
     TextInput,
-    Alert
+    Alert,
+    Modal
 } from 'react-native';
-import { useItems } from '../context/ItemContext';
 import { useTheme } from '../theme/ThemeProvider';
+import { useItems } from '../context/ItemContext';
 import { DEFAULT_CATEGORIES } from '../types';
 
 interface CategoryManagerProps {
@@ -19,27 +19,42 @@ interface CategoryManagerProps {
 }
 
 const CategoryManager: React.FC<CategoryManagerProps> = ({ visible, onClose }) => {
-    const { state, dispatch } = useItems();
     const { colors } = useTheme();
+    const { state } = useItems();
     const [categories, setCategories] = useState<string[]>([]);
     const [newCategory, setNewCategory] = useState('');
+    const [categoryUsage, setCategoryUsage] = useState<Record<string, number>>({});
 
-    // Get unique categories from items
+    // Load categories and calculate usage
     useEffect(() => {
-        const uniqueCategories = new Set<string>();
+        if (visible) {
+            // Get unique categories from items and default categories
+            const uniqueCategories = new Set<string>();
 
-        // Add default categories
-        DEFAULT_CATEGORIES.forEach(category => uniqueCategories.add(category));
+            // Add default categories
+            DEFAULT_CATEGORIES.forEach(category => uniqueCategories.add(category));
 
-        // Add categories from items
-        state.items.forEach(item => {
-            if (item.category) {
-                uniqueCategories.add(item.category);
-            }
-        });
+            // Add categories from items
+            state.items.forEach(item => {
+                if (item.category) {
+                    uniqueCategories.add(item.category);
+                }
+            });
 
-        setCategories(Array.from(uniqueCategories).sort());
-    }, [state.items]);
+            // Sort categories alphabetically
+            const sortedCategories = Array.from(uniqueCategories).sort();
+            setCategories(sortedCategories);
+
+            // Calculate category usage
+            const usage: Record<string, number> = {};
+            state.items.forEach(item => {
+                if (item.category) {
+                    usage[item.category] = (usage[item.category] || 0) + 1;
+                }
+            });
+            setCategoryUsage(usage);
+        }
+    }, [visible, state.items]);
 
     const handleAddCategory = () => {
         if (!newCategory.trim()) {
@@ -52,54 +67,55 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ visible, onClose }) =
             return;
         }
 
-        setCategories([...categories, newCategory.trim()].sort());
+        // Add the new category
+        const updatedCategories = [...categories, newCategory.trim()].sort();
+        setCategories(updatedCategories);
         setNewCategory('');
+
+        Alert.alert('Success', `Category "${newCategory.trim()}" added successfully`);
     };
 
-    const handleSelectCategory = (category: string) => {
-        dispatch({ type: 'SET_SELECTED_CATEGORY', payload: category });
-        onClose();
-    };
+    const renderCategoryItem = ({ item }: { item: string }) => {
+        const itemCount = categoryUsage[item] || 0;
 
-    const renderCategoryItem = ({ item }: { item: string }) => (
-        <TouchableOpacity
-            style={[
-                styles.categoryItem,
-                { borderColor: colors.cardBorder }
-            ]}
-            onPress={() => handleSelectCategory(item)}
-        >
-            <Text style={[styles.categoryText, { color: colors.text }]}>{item}</Text>
-            <View style={styles.categoryCount}>
-                <Text style={[styles.categoryCountText, { color: colors.textSecondary }]}>
-                    {state.items.filter(i => i.category === item).length}
-                </Text>
+        return (
+            <View
+                style={[
+                    styles.categoryItem,
+                    {
+                        backgroundColor: colors.card,
+                        borderColor: colors.cardBorder
+                    }
+                ]}
+            >
+                <Text style={[styles.categoryName, { color: colors.text }]}>{item}</Text>
+                <View style={styles.categoryDetails}>
+                    <Text style={[styles.categoryCount, { color: colors.textSecondary }]}>
+                        {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                    </Text>
+                </View>
             </View>
-        </TouchableOpacity>
-    );
+        );
+    };
 
     return (
         <Modal
             visible={visible}
-            transparent={true}
             animationType="slide"
+            transparent={false}
             onRequestClose={onClose}
         >
-            <View style={styles.modalOverlay}>
-                <View
-                    style={[
-                        styles.modalContent,
-                        { backgroundColor: colors.background, borderColor: colors.cardBorder }
-                    ]}
-                >
-                    <View style={styles.modalHeader}>
-                        <Text style={[styles.modalTitle, { color: colors.text }]}>Categories</Text>
-                        <TouchableOpacity onPress={onClose}>
-                            <Text style={[styles.closeButton, { color: colors.textSecondary }]}>✕</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
+                <View style={styles.header}>
+                    <Text style={[styles.title, { color: colors.text }]}>Manage Categories</Text>
+                    <TouchableOpacity onPress={onClose}>
+                        <Text style={{ fontSize: 18, color: colors.textSecondary }}>✕</Text>
+                    </TouchableOpacity>
+                </View>
 
-                    <View style={styles.addCategoryContainer}>
+                <View style={styles.addCategorySection}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Add New Category</Text>
+                    <View style={styles.addCategoryRow}>
                         <TextInput
                             style={[
                                 styles.input,
@@ -109,7 +125,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ visible, onClose }) =
                                     backgroundColor: colors.card
                                 }
                             ]}
-                            placeholder="New category name..."
+                            placeholder="Category name..."
                             placeholderTextColor={colors.textLight}
                             value={newCategory}
                             onChangeText={setNewCategory}
@@ -121,97 +137,82 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ visible, onClose }) =
                             <Text style={styles.addButtonText}>Add</Text>
                         </TouchableOpacity>
                     </View>
-
-                    <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                        Available Categories
-                    </Text>
-
-                    <FlatList
-                        data={categories}
-                        renderItem={renderCategoryItem}
-                        keyExtractor={(item) => item}
-                        style={styles.categoryList}
-                        ListEmptyComponent={
-                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                                No categories available
-                            </Text>
-                        }
-                    />
-
-                    <TouchableOpacity
-                        style={[styles.clearButton, { borderColor: colors.cardBorder }]}
-                        onPress={() => {
-                            dispatch({ type: 'SET_SELECTED_CATEGORY', payload: '' });
-                            onClose();
-                        }}
-                    >
-                        <Text style={{ color: colors.textSecondary }}>Show All Items</Text>
-                    </TouchableOpacity>
                 </View>
+
+                <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>
+                    Your Categories
+                </Text>
+
+                <FlatList
+                    data={categories}
+                    renderItem={renderCategoryItem}
+                    keyExtractor={(item) => item}
+                    style={styles.categoryList}
+                    ListEmptyComponent={
+                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                            No categories found
+                        </Text>
+                    }
+                />
+
+                <TouchableOpacity
+                    style={[styles.closeButton, { backgroundColor: colors.secondary }]}
+                    onPress={onClose}
+                >
+                    <Text style={styles.closeButtonText}>Done</Text>
+                </TouchableOpacity>
             </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    modalOverlay: {
+    container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        padding: 20,
-    },
-    modalContent: {
-        width: '100%',
-        maxHeight: '80%',
-        borderRadius: 12,
-        borderWidth: 1,
         padding: 16,
     },
-    modalHeader: {
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 24,
+        paddingTop: 10,
     },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    closeButton: {
+    title: {
         fontSize: 24,
-        padding: 4,
-    },
-    addCategoryContainer: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    input: {
-        flex: 1,
-        borderWidth: 1,
-        borderRadius: 8,
-        padding: 12,
-        marginRight: 8,
-        fontSize: 16,
-    },
-    addButton: {
-        borderRadius: 8,
-        padding: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        minWidth: 60,
-    },
-    addButtonText: {
-        color: 'white',
         fontWeight: 'bold',
     },
     sectionTitle: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 8,
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 12,
+    },
+    addCategorySection: {
+        marginBottom: 16,
+    },
+    addCategoryRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    input: {
+        flex: 1,
+        height: 44,
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        marginRight: 12,
+    },
+    addButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+    },
+    addButtonText: {
+        color: 'white',
+        fontWeight: '600',
     },
     categoryList: {
-        marginBottom: 16,
+        flex: 1,
     },
     categoryItem: {
         flexDirection: 'row',
@@ -219,29 +220,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 12,
         paddingHorizontal: 16,
-        borderBottomWidth: 1,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginBottom: 8,
     },
-    categoryText: {
+    categoryName: {
         fontSize: 16,
+        fontWeight: '500',
+    },
+    categoryDetails: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     categoryCount: {
-        backgroundColor: 'rgba(0, 0, 0, 0.05)',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 12,
-    },
-    categoryCountText: {
-        fontSize: 12,
+        fontSize: 14,
     },
     emptyText: {
         textAlign: 'center',
         padding: 20,
     },
-    clearButton: {
-        alignItems: 'center',
-        padding: 12,
-        borderWidth: 1,
+    closeButton: {
+        paddingVertical: 14,
         borderRadius: 8,
+        alignItems: 'center',
+        marginTop: 16,
+    },
+    closeButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 
