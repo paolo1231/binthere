@@ -20,7 +20,7 @@ interface FeatureFlags {
 const featureFlags: FeatureFlags = {
     visualSearch: false,  // Set to false to hide visual search features
     barcodeScan: false,   // Set to false to hide barcode scanning
-    voiceEntry: false,    // Set to false to hide voice entry
+    voiceEntry: true,    // Set to false to hide voice entry
     predictiveUsage: false, // Set to false to hide predictive usage suggestions
 };
 
