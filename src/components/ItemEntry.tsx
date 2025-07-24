@@ -7,7 +7,6 @@ import { requestCameraPermission } from '../utils/permissions';
 import { analyzeImage } from '../utils/visionApi';
 import { isFeatureEnabled } from '../config/featureFlags';
 import CategorySelector from './CategorySelector';
-import VoiceModal from './VoiceModal';
 
 interface ItemEntryProps {
     onItemAdded?: () => void;
@@ -22,7 +21,7 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
     const [imageUri, setImageUri] = useState<string | undefined>(undefined);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [suggestedLabels, setSuggestedLabels] = useState<string[]>([]);
-    const [voiceModalVisible, setVoiceModalVisible] = useState(false);
+
 
     const handleAddItem = () => {
         if (!itemName.trim() || !itemLocation.trim()) {
@@ -45,21 +44,7 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
         ]);
     };
 
-    const handleVoiceEntry = () => {
-        setVoiceModalVisible(true);
-    };
 
-    const handleVoiceResult = (itemName: string, itemLocation: string) => {
-        setItemName(itemName);
-        setItemLocation(itemLocation);
-
-        // Show a confirmation to the user
-        Alert.alert(
-            'Voice Recognition Complete',
-            `Item: ${itemName}\nLocation: ${itemLocation}`,
-            [{ text: 'OK' }]
-        );
-    };
 
     const takePicture = async () => {
         try {
@@ -309,16 +294,6 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
             </View>
 
             <View style={styles.buttonRow}>
-                {isFeatureEnabled('voiceEntry') && (
-                    <TouchableOpacity
-                        style={[styles.iconButton, { backgroundColor: colors.accent }]}
-                        onPress={handleVoiceEntry}
-                    >
-                        <Text style={styles.iconButtonText}>🎤</Text>
-                        <Text style={styles.iconButtonLabel}>Voice</Text>
-                    </TouchableOpacity>
-                )}
-
                 {isFeatureEnabled('barcodeScan') && (
                     <TouchableOpacity
                         style={[styles.iconButton, { backgroundColor: colors.info }]}
@@ -329,15 +304,6 @@ const ItemEntry: React.FC<ItemEntryProps> = ({ onItemAdded }) => {
                     </TouchableOpacity>
                 )}
             </View>
-
-            {/* Voice Recognition Modal */}
-            {isFeatureEnabled('voiceEntry') && (
-                <VoiceModal
-                    visible={voiceModalVisible}
-                    onClose={() => setVoiceModalVisible(false)}
-                    onVoiceResult={handleVoiceResult}
-                />
-            )}
         </View>
     );
 };
